@@ -1,19 +1,23 @@
 import scrapy
 import calendar
 from datetime import date
+from scraper.spiders.diario.items import (
+    DiarioItem,
+    DiarioFileItem,
+)
 
-from scraper.spiders.diario.items import DiarioItem
-from scraper.spiders.diario.models import Diario
 
 class DiarioSpider(scrapy.Spider):
+
+
+
     name = "diario"
 
     allowed_domains = [
         "cidadao.saocarlos.sp.gov.br"
     ]
-    model = Diario
 
-  
+
     start_urls = [
         "https://cidadao.saocarlos.sp.gov.br/"
         "servicos/jornal/include/publicacoes.php"
@@ -54,10 +58,6 @@ class DiarioSpider(scrapy.Spider):
 
 
 
-
-
-
-
     def parse(self, response):
 
         publications = response.json()
@@ -76,8 +76,52 @@ class DiarioSpider(scrapy.Spider):
             if not journal or not pdf:
                 continue
 
-            yield DiarioItem(
-                date=date,
-                journal=journal,
-                pdf=f'https://cidadao.saocarlos.sp.gov.br/servicos/jornal/{pdf}'
+
+            pdf_url = (
+                "https://cidadao.saocarlos.sp.gov.br/"
+                f"servicos/jornal/{pdf}"
             )
+
+
+            yield scrapy.Request(
+                url=pdf_url,
+                callback=self.parse_pdf,
+                cb_kwargs={
+                    "journal": journal,
+                    "date": date,
+                    "filename": pdf.replace("\\",'_').replace('/','_'),
+                    "pdf_url":pdf_url
+                }
+            )
+
+
+    def parse_pdf(
+        self,
+        response,
+        journal,
+        date,
+        filename,
+        pdf_url
+    ):
+
+        self.logger.info(
+            "Downloading PDF: %s",
+            filename
+        )
+
+
+        # Save file
+        yield DiarioFileItem(
+            filename=filename,
+            content=response.body
+        )
+
+
+        # Save database record
+        yield DiarioItem(
+            _id=f"{journal}",
+            date=date,
+            journal=journal,
+            pdf=f"{filename}",
+            pdf_url=pdf_url
+        )

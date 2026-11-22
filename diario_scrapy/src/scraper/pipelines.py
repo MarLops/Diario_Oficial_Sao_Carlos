@@ -1,60 +1,82 @@
 from scraper.database.session import get_session
 
+from scraper.storage.session import get_storage
+from scraper.utils.items import StorageItem
+
 
 class SQLAlchemyPipeline:
 
-    def open_spider(self, spider):
-
+    def open_spider(self):
         self.session = get_session()
 
-        if not hasattr(spider, "model"):
-            raise AttributeError(
-                f"{spider.name} does not define a model"
-            )
-
-        self.model = spider.model
-
-        spider.logger.info(
-            "Using database model: %s",
-            self.model.__name__
-        )
-
+       
 
     def process_item(self, item, spider):
-
         try:
+            if not hasattr(item, "model"):
+                raise AttributeError(
+                    f"{item.__class__.__name__} does not define a model"
+                )
+
+            model = item.model
 
             data = dict(item)
 
-            obj = self.model(
+            obj = model(
                 **data
             )
 
-            self.session.add(obj)
+            self.session.merge(obj)
 
             self.session.commit()
 
             spider.logger.info(
-                "Saved item: %s",
-                data
+                "Saved item using model %s: %s",
+                model.__name__,
+                data,
             )
 
-        except Exception as e:
-
+        except Exception:
             self.session.rollback()
 
-            spider.logger.error(
-                "Database error: %s",
-                e
+            spider.logger.exception(
+                "Database error"
             )
 
         return item
 
-
     def close_spider(self, spider):
-
         self.session.close()
 
         spider.logger.info(
             "Database session closed"
         )
+
+
+
+
+class StoragePipeline:
+
+    def open_spider(self):
+        self.session = get_storage()
+
+      
+
+    def process_item(self, item, spider):
+
+        if not isinstance(item, StorageItem):
+            return item
+
+        storage_name = item.storage_name
+        self.session.set_storage(storage_name)
+
+       
+        self.session.save(
+            filename=item["filename"],
+            content=item["content"],
+        )
+       
+
+        return item
+
+    

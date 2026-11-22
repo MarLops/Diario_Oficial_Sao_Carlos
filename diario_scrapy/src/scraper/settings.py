@@ -60,6 +60,7 @@ DOWNLOAD_DELAY = 1
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
     "scraper.pipelines.SQLAlchemyPipeline": 300,
+    "scraper.pipelines.StoragePipeline": 400,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

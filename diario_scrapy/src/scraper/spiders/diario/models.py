@@ -1,29 +1,40 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, DateTime, func
 
 from scraper.database.base import Base
 
 
-class Diario(Base):
 
+class Diario(Base):
     __tablename__ = "diario"
 
-    id = Column(
-        Integer,
-        primary_key=True
+    _id = Column(
+        String,
+        primary_key=True,
     )
 
     date = Column(
         String,
-        nullable=False
+        nullable=False,
     )
 
     journal = Column(
         String,
         unique=True,
-        nullable=False
+        nullable=False,
     )
 
     pdf = Column(
         String,
-        nullable=False
+        nullable=False,
+    )
+
+    pdf_url = Column(
+        String,
+        nullable=False,
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )

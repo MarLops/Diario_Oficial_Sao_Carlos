@@ -1,18 +1,29 @@
 from pathlib import Path
 
+from scraper.storage.base import Storage
 
-class LocalStorage:
 
+class LocalStorage(Storage):
 
-    def __init__(
+    base_path = "data/storage"
+
+    def set_storage(
         self,
-        base_path="data/storage"
+        storage_name
     ):
-
-        self.base_path = Path(base_path)
-
-        # Make sure storage folder exists
+        self.base_path = Path(self.base_path)
+        self.storage_name = storage_name
         self.base_path.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+        self.folder = (
+            self.base_path
+            / storage_name
+        )
+
+        self.folder.mkdir(
             parents=True,
             exist_ok=True
         )
@@ -20,35 +31,35 @@ class LocalStorage:
 
     def save(
         self,
-        source,
         filename,
         content
     ):
 
-        folder = (
-            self.base_path
-            / source
-            / "pdf"
-        )
+        if not isinstance(content, bytes):
+            raise TypeError(
+                "Storage content must be bytes"
+            )
 
+        folder = self.folder
+            
+        
 
-        # Create:
-        # data/storage/diario/pdf/
         folder.mkdir(
             parents=True,
             exist_ok=True
         )
-
 
         file_path = (
             folder
             / filename
         )
 
-
         file_path.write_bytes(
             content
         )
 
-
         return str(file_path)
+
+    def close(self):
+
+        pass
