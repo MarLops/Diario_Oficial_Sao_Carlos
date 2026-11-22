@@ -14,9 +14,7 @@ class SQLAlchemyPipeline:
     def process_item(self, item, spider):
         try:
             if not hasattr(item, "model"):
-                raise AttributeError(
-                    f"{item.__class__.__name__} does not define a model"
-                )
+                return item
 
             model = item.model
 

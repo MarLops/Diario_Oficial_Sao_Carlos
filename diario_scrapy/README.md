@@ -61,6 +61,166 @@ source .venv/bin/activate
 
 ---
 
+# Project Commands (uv)
+
+The project provides reusable commands through `uv`.
+
+List available commands:
+
+```bash
+uv run --list
+```
+
+Available commands:
+
+```text
+scraper-diario
+sync-database
+sync-storage
+sync-environment
+refresh
+```
+
+---
+
+## Initialize Database
+
+Create database tables:
+
+```bash
+uv run sync-database
+```
+
+This executes:
+
+```text
+src/scraper/database/init_db.py
+```
+
+Database location:
+
+```text
+data/database/
+```
+
+Example:
+
+```text
+data/database/diario.db
+```
+
+---
+
+## Initialize Storage
+
+Prepare document storage:
+
+```bash
+uv run sync-storage
+```
+
+This executes:
+
+```text
+src/scraper/storage/init_storage.py
+```
+
+Storage location:
+
+```text
+data/storage/
+```
+
+Example:
+
+```text
+data/storage/
+└── diario/
+    ├── 2026_01_01.pdf
+    └── 2026_01_02.pdf
+```
+
+---
+
+## Prepare Development Environment
+
+Initialize database and storage:
+
+```bash
+uv run sync-environment
+```
+
+Execution flow:
+
+```text
+sync-environment
+        |
+        +--> Initialize Database
+        |
+        +--> Initialize Storage
+```
+
+---
+
+## Run Diário Spider
+
+Execute the Diário crawler:
+
+```bash
+uv run scraper-diario
+```
+
+Equivalent to:
+
+```bash
+scrapy crawl diario
+```
+
+Execution flow:
+
+```text
+scraper-diario
+        |
+        v
+Scrapy Spider
+        |
+        +--> DiarioFileItem
+        |       |
+        |       +--> StoragePipeline
+        |               |
+        |               +--> data/storage/
+        |
+        +--> DiarioItem
+                |
+                +--> SQLAlchemyPipeline
+                        |
+                        +--> data/database/
+```
+
+---
+
+## Full Refresh
+
+Execute initialization and scraper:
+
+```bash
+uv run refresh
+```
+
+Execution flow:
+
+```text
+refresh
+    |
+    +--> sync-database
+    |
+    +--> sync-storage
+    |
+    +--> scraper-diario
+```
+
+---
+
 # Development Data Storage
 
 During development, all generated data is stored locally inside the `data` directory.
@@ -77,48 +237,9 @@ data/
     └── downloaded_documents/
 ```
 
-## Database
-
-The SQLite database is stored in:
-
-```text
-data/database/
-```
-
-Example:
-
-```text
-data/database/diario.db
-```
-
-This database contains the tables created from SQLAlchemy models.
-
-## Document Storage
-
-Downloaded files are stored in:
-
-```text
-data/storage/
-```
-
-Example:
-
-```text
-data/storage/
-└── diario/
-    ├── 2026_01_01.pdf
-    └── 2026_01_02.pdf
-```
-
-The storage layer is responsible for saving the original documents downloaded by spiders.
-
 ---
 
 # Project Structure
-
-Each spider is isolated inside its own folder.
-
-Example:
 
 ```text
 diario_scrapy/
@@ -137,6 +258,9 @@ diario_scrapy/
         │   ├── base.py
         │   ├── session.py
         │   └── init_db.py
+        │
+        ├── storage/
+        │   └── init_storage.py
         │
         └── spiders/
             │
@@ -203,7 +327,7 @@ Each spider owns its database model.
 
 # Creating a New Spider
 
-To create a new document collector, create a new folder:
+Create a new folder:
 
 ```text
 scraper/spiders/<source_name>/
@@ -215,7 +339,7 @@ Example:
 scraper/spiders/diario/
 ```
 
-Each spider folder must contain:
+Each spider folder contains:
 
 ```text
 diario/
@@ -229,16 +353,10 @@ diario/
 
 # Creating the Model
 
-Create the SQLAlchemy model in:
+Create the SQLAlchemy model:
 
 ```text
 spiders/<source_name>/models.py
-```
-
-The model must inherit from:
-
-```python
-Base
 ```
 
 Example:
@@ -254,17 +372,21 @@ class Document(Base):
     ...
 ```
 
+The model must inherit from:
+
+```python
+Base
+```
+
 ---
 
 # Creating the Item
 
-Create the Scrapy Item in:
+Create the Scrapy Item:
 
 ```text
 spiders/<source_name>/item.py
 ```
-
-The Item must define the SQLAlchemy model using the `model` attribute.
 
 Example:
 
@@ -290,22 +412,16 @@ The pipeline uses:
 item.model
 ```
 
-to determine which database model should receive the data.
+to identify the SQLAlchemy model.
 
 ---
 
 # Creating the Spider
 
-Create the spider in:
+Create:
 
 ```text
 spiders/<source_name>/spider.py
-```
-
-The spider must inherit from:
-
-```python
-scrapy.Spider
 ```
 
 Example:
@@ -327,16 +443,16 @@ class DiarioSpider(scrapy.Spider):
     def parse(self, response):
 
         yield DiarioItem(
-            _id="example_2026_01_01",
+            _id="example",
             date="2026_01_01",
             journal="example",
-            pdf="https://example.com/file.pdf"
+            pdf="document.pdf"
         )
 ```
 
 ---
 
-# Database Pipeline Flow
+# Pipeline Flow
 
 The pipeline is shared by all spiders.
 
@@ -350,46 +466,21 @@ Spider
    v
 Scrapy Item
    |
-   | item.model
+   +--> ModelItem
+   |        |
+   |        v
+   |   SQLAlchemyPipeline
    |
-   v
-SQLAlchemy Model
    |
-   v
-data/database/database.sqlite
-```
-
-Example:
-
-```python
-class DiarioItem(scrapy.Item):
-
-    model = Diario
-```
-
-means the data is saved using the `Diario` SQLAlchemy model.
-
----
-
-# Initialize Database
-
-Create database tables:
-
-```bash
-python -m scraper.database.init_db
-```
-
-The database file will be created under:
-
-```text
-data/database/
+   +--> StorageItem
+            |
+            v
+      StoragePipeline
 ```
 
 ---
 
 # List Available Spiders
-
-To list all available spiders:
 
 ```bash
 scrapy list
@@ -399,23 +490,22 @@ Example:
 
 ```text
 diario
-contracts
 ```
 
 ---
 
-# Run a Spider
+# Run Spider Directly
 
-Run:
+Without uv:
 
 ```bash
 scrapy crawl diario
 ```
 
-Replace `diario` with the spider name returned by:
+Using uv:
 
 ```bash
-scrapy list
+uv run scraper-diario
 ```
 
 ---
@@ -429,8 +519,6 @@ scrapy crawl diario -L INFO
 ---
 
 # Export Data
-
-Export scraped data:
 
 ```bash
 scrapy crawl diario -o output.json
@@ -457,15 +545,15 @@ new_source/
 └── spider.py
 ```
 
-3. Create the SQLAlchemy model.
+3. Create SQLAlchemy model.
 
-4. Create the Scrapy Item:
+4. Create Item:
 
 ```python
 model = YourModel
 ```
 
-5. Create the spider:
+5. Create spider:
 
 ```python
 class NewSourceSpider(scrapy.Spider):
@@ -482,7 +570,7 @@ scrapy list
 7. Run:
 
 ```bash
-scrapy crawl new_source
+uv run new-source
 ```
 
 ---
@@ -491,8 +579,10 @@ scrapy crawl new_source
 
 - Each document source is an independent spider module.
 - Each spider owns its Item and database Model.
-- The pipeline is shared by all spiders.
+- Storage and database pipelines are separated.
 - Database files are stored in `data/database`.
 - Downloaded documents are stored in `data/storage`.
-- Adding a new source does not require changing the pipeline.
-- The Item defines the database destination through the `model` attribute.
+- Adding a new source does not require changing pipelines.
+- Items define their destination:
+  - `ModelItem` → SQLAlchemy database
+  - `StorageItem` → File storage

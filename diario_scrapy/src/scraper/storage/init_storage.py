@@ -2,7 +2,7 @@ from scraper.storage.local import LocalStorage
 import pathlib
 
 def get_storage():
-
+    
     pathlib.Path(LocalStorage.base_path).mkdir(exist_ok=True)
 
 

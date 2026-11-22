@@ -1,5 +1,5 @@
 [project]
-name = "diario-scrapy"
+name = "scraper"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -9,8 +9,16 @@ dependencies = [
     "sqlalchemy>=2.1.9",
 ]
 
+
+[tool.uv]
+package = true
+
 [project.scripts]
-diario-scrapy = "diario_scrapy:main"
+scraper-diario = "scraper.cli:run_diario"
+sync-database = "scraper.cli:sync_database"
+sync-storage = "scraper.cli:sync_storage"
+sync-environment = "scraper.cli:sync_environment"
+
 
 [build-system]
 requires = ["uv_build>=0.13.6,<0.14.0"]

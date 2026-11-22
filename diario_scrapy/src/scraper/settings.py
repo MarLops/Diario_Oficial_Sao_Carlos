@@ -88,3 +88,11 @@ ITEM_PIPELINES = {
 DOWNLOADER_MIDDLEWARE_RESPONSE_EXCEPTIONS = True
 FEED_EXPORT_ENCODING = "utf-8"
 FEED_MODE = "create"
+
+
+LOG_ENABLED = True
+LOG_LEVEL = "ERROR"
+
+# Remove or comment these:
+LOG_FILE = "scraper.log"
+LOG_FILE_APPEND = True
