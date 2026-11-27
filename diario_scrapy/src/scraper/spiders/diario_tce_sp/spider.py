@@ -59,7 +59,7 @@ class DiarioTCESPSpider(scrapy.Spider):
         file_path = publication.get("file")
         # Skip if there is no PDF
         if file_path :
-            pdf_url = f"{self.start_urls[0]}/v{file_path}"
+            pdf_url = f"{self.start_urls[0]}{file_path}"
             filename = Path(file_path).name
 
             yield scrapy.Request(
